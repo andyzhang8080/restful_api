@@ -13,6 +13,7 @@ import org.modelmapper.ModelMapper;
 import org.modelmapper.TypeToken;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
@@ -66,16 +67,29 @@ public class UserController {
     //http://localhost:8080/mobile-app-ws/users/jsfjglajg/addresses
     @GetMapping(path = "/{id}/addresses", produces = {MediaType.APPLICATION_XML_VALUE, MediaType.APPLICATION_JSON_VALUE})
     //order matter. The first media type is the default
-    public List<AddressesRest> getUserAddresses(@PathVariable String id) {
+//    public List<AddressesRest> getUserAddresses(@PathVariable String id) {
+    public CollectionModel<AddressesRest> getUserAddresses(@PathVariable String id) {
         List<AddressesRest> returnValue = new ArrayList<>();
         List<AddressDTO> addressesDTO = addressesService.getAddresses(id);
         if(addressesDTO != null && !addressesDTO.isEmpty()) {
-            Type listType = new TypeToken<List<AddressDTO>>() {
+            //in the next line, we need to write List<AddressesRest> because it does not contain user details such as password
+            Type listType = new TypeToken<List<AddressesRest>>() {
             }.getType();
 
             returnValue = new ModelMapper().map(addressesDTO, listType);
+
+            for(AddressesRest addressesRest : returnValue) {
+                Link selfLink = WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UserController.class)
+                        .getUserAddress(id, addressesRest.getAddressId()))
+                        .withSelfRel();
+                addressesRest.add(selfLink);
+            }
         }
-        return returnValue;
+        Link userLink = WebMvcLinkBuilder.linkTo(UserController.class).slash(id).withRel("user");
+        Link selfLink = WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UserController.class).getUserAddresses(id))
+                .withSelfRel();
+
+        return CollectionModel.of(returnValue, userLink, selfLink);
     }
 
     @GetMapping(path = "/{userId}/addresses/{addressId}", produces = {MediaType.APPLICATION_XML_VALUE, MediaType.APPLICATION_JSON_VALUE})
