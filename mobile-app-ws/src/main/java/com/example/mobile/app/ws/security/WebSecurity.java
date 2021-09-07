@@ -25,10 +25,16 @@ public class WebSecurity extends WebSecurityConfigurerAdapter {
         http.csrf().disable().authorizeRequests()
                 .antMatchers(HttpMethod.POST, SecurityConstants.SIGN_UP_URL)
                 .permitAll()
+                .antMatchers(HttpMethod.GET, SecurityConstants.EMAIL_VERIFICATION_URL)
+                .permitAll()
+                .antMatchers(SecurityConstants.H2_CONSOLE)
+                .permitAll()
                 .anyRequest().authenticated().and().addFilter(getAuthenticationFilter())
                 .addFilter(new AuthorizationFilter(authenticationManager()))
         .sessionManagement()
         .sessionCreationPolicy(SessionCreationPolicy.STATELESS); //this is supposed to not cache authorization token
+
+        //http.headers().frameOptions().disable(); //for H2 console in browser
     }
 
     public AuthenticationFilter getAuthenticationFilter() throws Exception {
